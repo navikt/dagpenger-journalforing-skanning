@@ -5,7 +5,6 @@ plugins {
     id("com.palantir.docker") version "0.20.1"
     id("com.palantir.git-version") version "0.11.0"
     id("com.adarshr.test-logger") version "1.5.0"
-    id("java-library")
 }
 
 apply {
@@ -16,6 +15,7 @@ apply {
 repositories {
     jcenter()
     maven(url = "http://packages.confluent.io/maven/")
+    maven(url = "https://dl.bintray.com/kotlin/ktor")
 }
 
 val gitVersion: groovy.lang.Closure<Any> by extra
@@ -39,9 +39,9 @@ docker {
 }
 
 val kotlinLoggingVersion = "1.4.9"
-
 val kafkaVersion = "2.0.0"
 val confluentVersion = "4.1.2"
+val ktorVersion = "0.9.5"
 
 dependencies {
     implementation(kotlin("stdlib"))
@@ -50,9 +50,11 @@ dependencies {
 
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
 
-    api("org.apache.kafka:kafka-clients:$kafkaVersion")
-    api("org.apache.kafka:kafka-streams:$kafkaVersion")
-    api("io.confluent:kafka-streams-avro-serde:$confluentVersion")
+    compile("org.apache.kafka:kafka-clients:$kafkaVersion")
+    compile("org.apache.kafka:kafka-streams:$kafkaVersion")
+    compile("io.confluent:kafka-streams-avro-serde:$confluentVersion")
+
+    compile("io.ktor:ktor-server-netty:$ktorVersion")
 
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit"))

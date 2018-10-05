@@ -15,6 +15,7 @@ private val LOGGER = KotlinLogging.logger {}
 
 class JournalføringSkanning(private val journalpostTypeMapping: JournalpostTypeMapping) : Service() {
     override val SERVICE_APP_ID = "journalføring-skanning"
+    override val HTTP_PORT: Int = 8080
 
     companion object {
         @JvmStatic
