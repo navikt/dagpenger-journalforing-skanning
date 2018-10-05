@@ -23,7 +23,7 @@ version = gitVersion()
 group = "no.nav.dagpenger"
 
 application {
-    applicationName = "dagpenger-journalføring-skanning"
+    applicationName = "dagpenger-journalforing-skanning"
     mainClassName = "no.nav.dagpenger.journalføring.skanning.JournalføringSkanning"
 }
 

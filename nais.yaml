@@ -1,5 +1,5 @@
-name: dagpenger-journalføring-skanning
-image: repo.adeo.no:5443/dagpenger-journalføring-skanning
+name: dagpenger-journalforing-skanning
+image: repo.adeo.no:5443/dagpenger-journalforing-skanning
 team: dagpenger
 replicas:
   min: 2
@@ -13,12 +13,3 @@ resources:
     memory: 256Mi
 prometheus:
   enabled: true
-  #fasitResources:
-  #  used:
-  #    - alias: dagpenger-joark-mottak-properties
-  #      resourceType: applicationproperties
-  #    - alias: srvdagpenger
-  #      resourceType: credential
-  #      propertyMap:
-  #        username: KAFKA_USERNAME
-  #        password: KAFKA_PASSWORD

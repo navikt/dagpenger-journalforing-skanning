@@ -1,4 +1,4 @@
-rootProject.name = "dagpenger-journalføring-skanning"
+rootProject.name = "dagpenger-journalforing-skanning"
 
 pluginManagement {
     repositories {
