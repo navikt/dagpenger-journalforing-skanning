@@ -4,18 +4,23 @@ plugins {
     id("com.diffplug.gradle.spotless") version "3.13.0"
     id("com.palantir.docker") version "0.20.1"
     id("com.palantir.git-version") version "0.11.0"
-    id("com.adarshr.test-logger") version "1.5.0"
+}
+
+buildscript {
+    repositories {
+        maven("https://repo.adeo.no/repository/maven-central")
+    }
 }
 
 apply {
     plugin("com.diffplug.gradle.spotless")
-    plugin("com.adarshr.test-logger")
 }
 
 repositories {
-    jcenter()
-    maven(url = "http://packages.confluent.io/maven/")
-    maven(url = "https://dl.bintray.com/kotlin/ktor")
+    maven("https://repo.adeo.no/repository/maven-central")
+    maven("http://packages.confluent.io/maven/")
+    maven("https://dl.bintray.com/kotlin/ktor")
+    maven("https://dl.bintray.com/kotlin/kotlinx")
 }
 
 val gitVersion: groovy.lang.Closure<Any> by extra
