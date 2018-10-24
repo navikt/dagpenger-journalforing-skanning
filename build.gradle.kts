@@ -47,6 +47,7 @@ val kotlinLoggingVersion = "1.4.9"
 val kafkaVersion = "2.0.0"
 val confluentVersion = "4.1.2"
 val ktorVersion = "0.9.5"
+val prometheusVersion = "0.5.0"
 
 dependencies {
     implementation(kotlin("stdlib"))
@@ -54,6 +55,9 @@ dependencies {
     implementation("no.nav.dagpenger:events:0.0.1")
 
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
+
+    implementation("io.prometheus:simpleclient_common:$prometheusVersion")
+    implementation("io.prometheus:simpleclient_hotspot:$prometheusVersion")
 
     compile("org.apache.kafka:kafka-clients:$kafkaVersion")
     compile("org.apache.kafka:kafka-streams:$kafkaVersion")
