@@ -15,7 +15,7 @@ private val LOGGER = KotlinLogging.logger {}
 
 class JournalføringSkanning(private val journalpostTypeMapping: JournalpostTypeMapping) : Service() {
     override val SERVICE_APP_ID = "journalføring-skanning"
-    override val HTTP_PORT: Int = 8080
+    override val HTTP_PORT: Int = 8081
 
     companion object {
         @JvmStatic
@@ -44,7 +44,17 @@ class JournalføringSkanning(private val journalpostTypeMapping: JournalpostType
 
     private fun addJournalpostType(behov: Behov): Behov {
         val journalpost = behov.getJournalpost()
-        journalpost.setJournalpostType(JournalpostType.UKJENT)
+
+        //Handle multiple dokuments
+        val dokumentId = journalpost.getDokumentListe()[0].getDokumentId()
+
+        val journalpostType = when {
+            behov.getJournalpost().getSøker().getIdentifikator() == null -> JournalpostType.MANUELL
+            else -> journalpostTypeMapping.getJournalpostType(dokumentId)
+        }
+
+        behov.getJournalpost().setJournalpostType(journalpostType)
+
         return behov
     }
 
