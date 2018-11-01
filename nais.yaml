@@ -4,6 +4,7 @@ team: dagpenger
 replicas:
   min: 2
   max: 4
+port: 8084
 resources:
   limits:
     cpu: 1000m
@@ -13,3 +14,9 @@ resources:
     memory: 256Mi
 prometheus:
   enabled: true
+fasitResources:
+  used:
+  - alias: srvdagpenger-journalforing-skanning
+    resourceType: credential
+  - alias:  kafka-schema-registry
+    resourceType: baseUrl

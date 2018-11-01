@@ -7,15 +7,20 @@ import no.nav.dagpenger.events.avro.JournalpostType
 import no.nav.dagpenger.streams.Service
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
 import no.nav.dagpenger.streams.consumeTopic
+import no.nav.dagpenger.streams.streamConfig
 import no.nav.dagpenger.streams.toTopic
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.StreamsBuilder
+import java.util.Properties
 
 private val LOGGER = KotlinLogging.logger {}
 
+private val username: String? = System.getenv("SRVDAGPENGER_JOURNALFORING_SKANNING_USERNAME")
+private val password: String? = System.getenv("SRVDAGPENGER_JOURNALFORING_SKANNING_PASSWORD")
+
 class JournalføringSkanning(private val journalpostTypeMapping: JournalpostTypeMapping) : Service() {
     override val SERVICE_APP_ID = "journalføring-skanning"
-    override val HTTP_PORT: Int = 8081
+    override val HTTP_PORT: Int = 8084
 
     companion object {
         @JvmStatic
@@ -40,6 +45,10 @@ class JournalføringSkanning(private val journalpostTypeMapping: JournalpostType
                 .toTopic(INNGÅENDE_JOURNALPOST)
 
         return KafkaStreams(builder.build(), this.getConfig())
+    }
+
+    override fun getConfig(): Properties {
+        return streamConfig(appId = SERVICE_APP_ID, username = username, password = password)
     }
 
     private fun addJournalpostType(behov: Behov): Behov {
