@@ -16,6 +16,8 @@ prometheus:
   enabled: true
 fasitResources:
   used:
+  - alias: dagpenger-journalforing-skanning-properties
+    resourceType: applicationproperties
   - alias: srvdagpenger-journalforing-skanning
     resourceType: credential
   - alias:  kafka-schema-registry
