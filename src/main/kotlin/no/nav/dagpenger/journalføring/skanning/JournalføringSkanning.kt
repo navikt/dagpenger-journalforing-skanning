@@ -4,6 +4,7 @@ import mu.KotlinLogging
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.avro.Dokument
 import no.nav.dagpenger.events.avro.JournalpostType
+import no.nav.dagpenger.streams.KafkaCredential
 import no.nav.dagpenger.streams.Service
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
 import no.nav.dagpenger.streams.consumeTopic
@@ -15,17 +16,15 @@ import java.util.Properties
 
 private val LOGGER = KotlinLogging.logger {}
 
-private val username: String? = System.getenv("SRVDAGPENGER_JOURNALFORING_SKANNING_USERNAME")
-private val password: String? = System.getenv("SRVDAGPENGER_JOURNALFORING_SKANNING_PASSWORD")
+class JournalføringSkanning(val env: Environment, private val journalpostTypeMapping: JournalpostTypeMapping) : Service() {
+    override val SERVICE_APP_ID = "journalføring-skanning" // NB: also used as group.id for the consumer group - do not change!
 
-class JournalføringSkanning(private val journalpostTypeMapping: JournalpostTypeMapping) : Service() {
-    override val SERVICE_APP_ID = "journalføring-skanning"
-    override val HTTP_PORT: Int = 8084
+    override val HTTP_PORT: Int = env.httpPort ?: super.HTTP_PORT
 
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
-            val service = JournalføringSkanning(JournalpostTypeMappingManual())
+            val service = JournalføringSkanning(Environment(), JournalpostTypeMappingManual())
             service.start()
         }
     }
@@ -48,7 +47,7 @@ class JournalføringSkanning(private val journalpostTypeMapping: JournalpostType
     }
 
     override fun getConfig(): Properties {
-        return streamConfig(appId = SERVICE_APP_ID, username = username, password = password)
+        return streamConfig(appId = SERVICE_APP_ID, bootStapServerUrl = env.bootstrapServersUrl, credential = KafkaCredential(env.username, env.password))
     }
 
     private fun addJournalpostType(behov: Behov): Behov {
