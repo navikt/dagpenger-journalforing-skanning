@@ -1,5 +1,6 @@
 package no.nav.dagpenger.journalføring.skanning
 
+import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig
 import mu.KotlinLogging
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.avro.Dokument
@@ -7,6 +8,7 @@ import no.nav.dagpenger.events.avro.JournalpostType
 import no.nav.dagpenger.streams.KafkaCredential
 import no.nav.dagpenger.streams.Service
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
+import no.nav.dagpenger.streams.configureAvroSerde
 import no.nav.dagpenger.streams.consumeTopic
 import no.nav.dagpenger.streams.streamConfig
 import no.nav.dagpenger.streams.toTopic
@@ -16,8 +18,10 @@ import java.util.Properties
 
 private val LOGGER = KotlinLogging.logger {}
 
-class JournalføringSkanning(val env: Environment, private val journalpostTypeMapping: JournalpostTypeMapping) : Service() {
-    override val SERVICE_APP_ID = "journalføring-skanning" // NB: also used as group.id for the consumer group - do not change!
+class JournalføringSkanning(val env: Environment, private val journalpostTypeMapping: JournalpostTypeMapping) :
+    Service() {
+    override val SERVICE_APP_ID =
+        "journalføring-skanning" // NB: also used as group.id for the consumer group - do not change!
 
     override val HTTP_PORT: Int = env.httpPort ?: super.HTTP_PORT
 
@@ -30,24 +34,39 @@ class JournalføringSkanning(val env: Environment, private val journalpostTypeMa
     }
 
     override fun setupStreams(): KafkaStreams {
-        println(SERVICE_APP_ID)
+        LOGGER.info { "Initiating start of $SERVICE_APP_ID" }
+        val innkommendeJournalpost = INNGÅENDE_JOURNALPOST.copy(
+            valueSerde = configureAvroSerde<Behov>(
+                mapOf(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to env.schemaRegistryUrl)
+            )
+        )
         val builder = StreamsBuilder()
 
-        val inngåendeJournalposter = builder.consumeTopic(INNGÅENDE_JOURNALPOST)
+        val inngåendeJournalposter = builder.consumeTopic(innkommendeJournalpost)
 
         inngåendeJournalposter
-                .peek { key, value -> LOGGER.info("Processing ${value.javaClass} with key $key") }
-                //.filter(this::containsJsonDokument)
-                .filter { _, behov -> behov.getJournalpost().getJournalpostType() == null }
-                .mapValues(this::addJournalpostType)
-                .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
-                .toTopic(INNGÅENDE_JOURNALPOST)
+            .peek { key, value -> LOGGER.info("Processing ${value.javaClass} with key $key") }
+            //.filter(this::containsJsonDokument)
+            .filter { _, behov -> behov.getJournalpost().getJournalpostType() == null }
+            .mapValues(this::addJournalpostType)
+            .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
+            .toTopic(
+                INNGÅENDE_JOURNALPOST.copy(
+                    valueSerde = configureAvroSerde<Behov>(
+                        mapOf(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to env.schemaRegistryUrl)
+                    )
+                )
+            )
 
         return KafkaStreams(builder.build(), this.getConfig())
     }
 
     override fun getConfig(): Properties {
-        return streamConfig(appId = SERVICE_APP_ID, bootStapServerUrl = env.bootstrapServersUrl, credential = KafkaCredential(env.username, env.password))
+        return streamConfig(
+            appId = SERVICE_APP_ID,
+            bootStapServerUrl = env.bootstrapServersUrl,
+            credential = KafkaCredential(env.username, env.password)
+        )
     }
 
     private fun addJournalpostType(behov: Behov): Behov {
