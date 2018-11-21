@@ -46,7 +46,6 @@ class JournalføringSkanning(val env: Environment, private val journalpostTypeMa
 
         inngåendeJournalposter
             .peek { key, value -> LOGGER.info("Processing ${value.javaClass} with key $key") }
-            //.filter(this::containsJsonDokument)
             .filter { _, behov -> behov.getJournalpost().getJournalpostType() == null }
             .mapValues(this::addJournalpostType)
             .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
