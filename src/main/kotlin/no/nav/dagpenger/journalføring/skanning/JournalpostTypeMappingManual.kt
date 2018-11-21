@@ -5,7 +5,7 @@ import no.nav.dagpenger.events.avro.JournalpostType
 class JournalpostTypeMappingManual : JournalpostTypeMapping {
 
     private val typeMap = mapOf(
-            "NAV 04-01.030" to JournalpostType.NY,
+            "NAV 04-01.03" to JournalpostType.NY,
             "NAV 04-01.04" to JournalpostType.NY,
             "NAV 04-16.03" to JournalpostType.GJENOPPTAK,
             "NAV 04-16.04" to JournalpostType.GJENOPPTAK,

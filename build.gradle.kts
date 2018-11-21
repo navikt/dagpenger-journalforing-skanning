@@ -4,6 +4,7 @@ plugins {
     id("com.diffplug.gradle.spotless") version "3.13.0"
     id("com.palantir.docker") version "0.20.1"
     id("com.palantir.git-version") version "0.11.0"
+    id("info.solidsoft.pitest") version "1.3.0"
 }
 
 buildscript {
@@ -14,6 +15,7 @@ buildscript {
 
 apply {
     plugin("com.diffplug.gradle.spotless")
+    plugin("info.solidsoft.pitest")
 }
 
 repositories {
@@ -73,7 +75,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit"))
     testImplementation("junit:junit:4.12")
-    testImplementation("au.com.dius:pact-jvm-consumer-java8_2.12:3.6.0-rc.0")
+    testImplementation("no.nav:kafka-embedded-env:2.0.1")
 }
 
 spotless {
@@ -85,3 +87,12 @@ spotless {
         ktlint()
     }
 }
+
+pitest {
+    threads = 4
+    coverageThreshold = 80
+    pitestVersion = "1.4.3"
+    avoidCallsTo = setOf("kotlin.jvm.internal")
+}
+
+tasks.getByName("check").dependsOn("pitest")
