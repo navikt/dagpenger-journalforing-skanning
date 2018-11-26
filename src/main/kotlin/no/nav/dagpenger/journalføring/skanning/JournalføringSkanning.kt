@@ -15,7 +15,7 @@ import java.util.Properties
 
 private val LOGGER = KotlinLogging.logger {}
 
-class JournalføringSkanning(val env: Environment, private val journalpostTypeMapping: JournalpostTypeMapping) :
+class JournalføringSkanning(val env: Environment) :
     Service() {
     override val SERVICE_APP_ID =
         "journalføring-skanning" // NB: also used as group.id for the consumer group - do not change!
@@ -25,7 +25,7 @@ class JournalføringSkanning(val env: Environment, private val journalpostTypeMa
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
-            val service = JournalføringSkanning(Environment(), JournalpostTypeMappingManual())
+            val service = JournalføringSkanning(Environment())
             service.start()
         }
     }
@@ -38,8 +38,11 @@ class JournalføringSkanning(val env: Environment, private val journalpostTypeMa
 
         inngåendeJournalposter
             .peek { key, value -> LOGGER.info("Processing ${value.javaClass} with key $key") }
-            .filter { _, behov -> behov.getJournalpost().getJournalpostType() == null }
-            .mapValues(this::addJournalpostType)
+            .filter { _, behov -> behov.getHenvendelsesType().getSøknad() != null || behov.getHenvendelsesType().getEttersending() != null }
+            //.filter { _, behov -> behov.getHenvendelsesType().getSøknad().getVedtakstype() == null   }
+            //.filter { _, behov -> behov.getHenvendelsesType().getSøknad().getRettighetsType() == null   }
+            .mapValues(this::setVedtakstype)
+            .mapValues(this::setRettighetstype)
             .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
             .toTopic(INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl)
 
@@ -54,18 +57,40 @@ class JournalføringSkanning(val env: Environment, private val journalpostTypeMa
         )
     }
 
-    private fun addJournalpostType(behov: Behov): Behov {
+    private fun setVedtakstype(behov: Behov): Behov {
         val journalpost = behov.getJournalpost()
 
         //Handle multiple dokuments
-        val dokumentId = journalpost.getDokumentListe()[0].getDokumentId()
+        val navSkjemaId: String? = journalpost.getDokumentListe().first().getNavSkjemaId()
 
-        val journalpostType = when {
-            behov.getJournalpost().getSøker().getIdentifikator() == null -> JournalpostType.MANUELL
-            else -> journalpostTypeMapping.getJournalpostType(dokumentId)
+        if (behov.getHenvendelsesType().getSøknad() != null && navSkjemaId != null) {
+            val vedtakstype = VedtakstypeMapper.mapper.getVedtakstype(navSkjemaId)
+            behov.getHenvendelsesType().getSøknad().setVedtakstype(vedtakstype)
         }
 
-        behov.getJournalpost().setJournalpostType(journalpostType)
+        return behov
+    }
+
+    private fun setRettighetstype(behov: Behov): Behov {
+        val journalpost = behov.getJournalpost()
+
+        //Handle multiple dokuments
+        val navSkjemaId: String? = journalpost.getDokumentListe().first().getNavSkjemaId()
+
+        /*val rettighetstype = when {
+            behov.getMottaker().getIdentifikator() == null -> ""
+            else -> RettighetstypeMapper.mapper.getRettighetstype(dokumentId)
+        }*/
+
+        if (behov.getHenvendelsesType().getSøknad() != null && navSkjemaId != null) {
+            val rettighetstype = RettighetstypeMapper.mapper.getRettighetstype(navSkjemaId)
+            behov.getHenvendelsesType().getSøknad().setRettighetsType(rettighetstype)
+        }
+
+        if (behov.getHenvendelsesType().getEttersending() != null && navSkjemaId != null) {
+            val rettighetstype = RettighetstypeMapper.mapper.getRettighetstype(navSkjemaId)
+            behov.getHenvendelsesType().getEttersending().setRettighetsType(rettighetstype)
+        }
 
         return behov
     }

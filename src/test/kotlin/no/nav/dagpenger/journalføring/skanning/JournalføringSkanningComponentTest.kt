@@ -8,6 +8,8 @@ import no.nav.common.embeddedutils.getAvailablePort
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.avro.Dokument
 import no.nav.dagpenger.events.avro.Journalpost
+import no.nav.dagpenger.events.avro.Mottaker
+import no.nav.dagpenger.events.avro.Søknad
 import no.nav.dagpenger.streams.Topics
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
 import org.apache.kafka.clients.CommonClientConfigs
@@ -61,7 +63,7 @@ class JournalføringSkanningComponentTest {
     }
 
     @Test
-    fun ` skal kunne legge på journalpostType `() {
+    fun ` skal kunne legge på vedtakstype `() {
 
         val mappingBehov = mapOf(
             Random().nextLong().toString() to true,
@@ -85,7 +87,7 @@ class JournalføringSkanningComponentTest {
             httpPort = getAvailablePort()
         )
 
-        val skanning = JournalføringSkanning(env, JournalpostTypeMappingManual())
+        val skanning = JournalføringSkanning(env, VedtakstypeMapper(), RettighetstypeMapper())
 
         //produce behov...
 
@@ -93,17 +95,17 @@ class JournalføringSkanningComponentTest {
 
         skanning.start()
 
-        mappingBehov.forEach { fødselsnummer, journalpostType ->
+        mappingBehov.forEach { fødselsnummer, vedtakstype ->
             val innkommendeBehov: Behov = Behov
                 .newBuilder()
                 .setBehovId( UUID.randomUUID().toString())
+                .setMottaker(Mottaker(fødselsnummer))
+                .setHenvendelsesType(Søknad())
                 .setJournalpost(
                     Journalpost
                         .newBuilder()
                         .setJournalpostId( UUID.randomUUID().toString())
                         .setDokumentListe(listOf(Dokument.newBuilder().setDokumentId("123").build()))
-                        .setSøker(Søker(fødselsnummer))
-                        .setJournalpostType(if (journalpostType) JournalpostType.NY else null)
                         .build()
                 )
                 .build()
@@ -118,10 +120,10 @@ class JournalføringSkanningComponentTest {
 
         assertEquals(13, behovsListe.size)
 
-        val lagtTilInnsendingsType = behovsListe.filter { kanskjeBehandletBehov ->
-            mappingBehov.filterValues { !it }.containsKey(kanskjeBehandletBehov.value().getJournalpost().getSøker().getIdentifikator()) && kanskjeBehandletBehov.value().getJournalpost().getJournalpostType() != null
+        val lagtTilVedtaksType = behovsListe.filter { kanskjeBehandletBehov ->
+            mappingBehov.filterValues { !it }.containsKey(kanskjeBehandletBehov.value().getMottaker().getIdentifikator()) && kanskjeBehandletBehov.value().getHenvendelsesType() != null
         }.size
-        assertEquals(mappingBehov.filterValues { !it }.size, lagtTilInnsendingsType)
+        assertEquals(mappingBehov.filterValues { !it }.size, lagtTilVedtaksType)
     }
 
     private fun behovProducer(env: Environment): KafkaProducer<String, Behov> {
