@@ -8,8 +8,6 @@ import no.nav.common.embeddedutils.getAvailablePort
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.avro.Dokument
 import no.nav.dagpenger.events.avro.Journalpost
-import no.nav.dagpenger.events.avro.JournalpostType
-import no.nav.dagpenger.events.avro.Søker
 import no.nav.dagpenger.streams.Topics
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
 import org.apache.kafka.clients.CommonClientConfigs
@@ -19,7 +17,6 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.config.SaslConfigs
-import org.apache.kafka.streams.StreamsConfig
 import org.junit.AfterClass
 import org.junit.BeforeClass
 import org.junit.Test
@@ -113,7 +110,6 @@ class JournalføringSkanningComponentTest {
             val record = behovProducer.send(ProducerRecord(INNGÅENDE_JOURNALPOST.name, innkommendeBehov)).get()
             LOGGER.info { "Produced -> ${record.topic()}  to offset ${record.offset()}" }
         }
-
 
         val behovConsumer: KafkaConsumer<String, Behov> = behovConsumer(env)
         val behovsListe = behovConsumer.poll(Duration.ofSeconds(5)).toList()
