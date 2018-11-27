@@ -3,7 +3,6 @@ package no.nav.dagpenger.journalføring.skanning
 import mu.KotlinLogging
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.avro.Dokument
-import no.nav.dagpenger.events.avro.HenvendelsesType
 import no.nav.dagpenger.events.isEttersending
 import no.nav.dagpenger.events.isSoknad
 import no.nav.dagpenger.streams.KafkaCredential
@@ -15,7 +14,6 @@ import no.nav.dagpenger.streams.streamConfig
 import no.nav.dagpenger.streams.toTopic
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.StreamsBuilder
-import org.apache.kafka.streams.kstream.Predicate
 import java.util.Properties
 
 private val LOGGER = KotlinLogging.logger {}
@@ -44,38 +42,21 @@ class JournalføringSkanning(val env: Environment) :
         val søknaderOgEttersendingStreams = inngåendeJournalposter
             .peek { key, value -> LOGGER.info("Processing ${value.javaClass} with key $key") }
             .kbranch({ _, behov -> behov.isSoknad() }, { _, behov -> behov.isEttersending() })
-        val søknadsStreams = søknaderOgEttersendingStreams.get(0)
-        val ettersendingsStreams = søknaderOgEttersendingStreams.get(1)
 
-        søknadsStreams.filter{_, behov -> behov.getHenvendelsesType().getSøknad().getVedtakstype() == null || behov.getHenvendelsesType().getSøknad().getRettighetsType() == null}
-            .mapValues(this::setVedtakstype)
-            .mapValues(this::setRettighetstypeSøknad)
+        val søknadsStream = søknaderOgEttersendingStreams[0]
+            .filterNot { _, behov -> behov.hasSøknadRettighetsType() && behov.hasSøknadVedtakType() }
+            .mapValues(this::setVedtakstypeOgRettighetsTypeSøknad)
 
-        ettersendingsStreams.filter{_, behov -> behov.getHenvendelsesType().getEttersending().getRettighetsType() == null }
+        val ettersendingStream = søknaderOgEttersendingStreams[1]
+            .filterNot { _, behov -> behov.hasEttersendingRettighetsType() }
             .mapValues(this::setRettighetstypeEttersending)
-            //.filter { _, behov -> behov.getHenvendelsesType().getSøknad() != null || behov.getHenvendelsesType().getEttersending() != null }
-            //.filter { _, behov -> (behov.getHenvendelsesType().getSøknad().getVedtakstype() == null && behov.getHenvendelsesType().getSøknad().getRettighetsType() == null) xor (behov.getHenvendelsesType().getEttersending() != null || behov.getHenvendelsesType().getEttersending().getRettighetsType() == null)  }
-            //.filter { _, behov -> behov.getHenvendelsesType().getSøknad().getRettighetsType() == null   }
-            /*.mapValues(this::setVedtakstype)
-            .mapValues(this::setRettighetstype)
-            .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
-<<<<<<< Updated upstream
-            .toTopic(INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl)
-=======
-            .toTopic(
-                INNGÅENDE_JOURNALPOST.copy(
-                    valueSerde = configureAvroSerde<Behov>(
-                        mapOf(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to env.schemaRegistryUrl)
-                    )
-                )
-            )*/
 
-        søknadsStreams.merge(ettersendingsStreams)
+        søknadsStream
+            .merge(ettersendingStream)
             .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
             .toTopic(
                 INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl
             )
-
 
         return KafkaStreams(builder.build(), this.getConfig())
     }
@@ -88,45 +69,17 @@ class JournalføringSkanning(val env: Environment) :
         )
     }
 
-    private fun setVedtakstype(behov: Behov): Behov {
-        val journalpost = behov.getJournalpost()
-
-        //Handle multiple dokuments
-        val navSkjemaId: String? = journalpost.getDokumentListe().first().getNavSkjemaId()
-
-        if (behov.getHenvendelsesType().getSøknad() != null && navSkjemaId != null) {
-            val vedtakstype = VedtakstypeMapper.mapper.getVedtakstype(navSkjemaId)
-            val søknad = behov.getHenvendelsesType().getSøknad()
-            val henvendelsesType = behov.getHenvendelsesType()
-            søknad.setVedtakstype(vedtakstype)
-            henvendelsesType.setSøknad(søknad)
-            behov.setHenvendelsesType(henvendelsesType)
-
-            //søknad.setVedtakstype(vedtakstype)
-            //behov.getHenvendelsesType().getSøknad().setVedtakstype(vedtakstype)
-            //behov.getHenvendelsesType().setSøknad(søknad)
-            //behov.getHenvendelsesType().getSøknad().setVedtakstype(vedtakstype)
-        }
-
-        return behov
-    }
-
-    private fun setRettighetstypeSøknad(behov: Behov): Behov {
+    private fun setVedtakstypeOgRettighetsTypeSøknad(behov: Behov): Behov {
         val journalpost = behov.getJournalpost()
 
         //Handle multiple dokuments
         val navSkjemaId: String? = journalpost.getDokumentListe().first().getNavSkjemaId()
 
         if (navSkjemaId != null) {
+            val vedtakstype = VedtakstypeMapper.mapper.getVedtakstype(navSkjemaId)
             val rettighetstype = RettighetstypeMapper.mapper.getRettighetstype(navSkjemaId)
-            val søknad = behov.getHenvendelsesType().getSøknad()
-            val henvendelsesType = behov.getHenvendelsesType()
-            søknad.setRettighetsType(rettighetstype)
-            henvendelsesType.setSøknad(søknad)
-            behov.setHenvendelsesType(henvendelsesType)
-            //behov.setHenvendelsesType(henvendelsesType)
-            //behov.getHenvendelsesType().setSøknad(søknad)
-            //behov.getHenvendelsesType().getSøknad().setRettighetsType(rettighetstype)
+            behov.getHenvendelsesType().getSøknad().setRettighetsType(rettighetstype)
+            behov.getHenvendelsesType().getSøknad().setVedtakstype(vedtakstype)
         }
 
         return behov
@@ -140,12 +93,7 @@ class JournalføringSkanning(val env: Environment) :
 
         if (navSkjemaId != null) {
             val rettighetstype = RettighetstypeMapper.mapper.getRettighetstype(navSkjemaId)
-            val ettersending = behov.getHenvendelsesType().getEttersending()
-            val henvendelsesType = behov.getHenvendelsesType()
-            ettersending.setRettighetsType(rettighetstype)
-            henvendelsesType.setEttersending(ettersending)
-            behov.setHenvendelsesType(henvendelsesType)
-            //behov.getHenvendelsesType().getEttersending().setRettighetsType(rettighetstype)
+            behov.getHenvendelsesType().getEttersending().setRettighetsType(rettighetstype)
         }
 
         return behov
@@ -155,4 +103,13 @@ class JournalføringSkanning(val env: Environment) :
         val isJson: (Dokument) -> Boolean = { false }
         return behov.getJournalpost().getDokumentListe().any(isJson)
     }
+
+    private fun Behov.hasSøknadRettighetsType(): Boolean =
+        this.getHenvendelsesType().getSøknad().getVedtakstype() != null
+
+    private fun Behov.hasSøknadVedtakType(): Boolean =
+        this.getHenvendelsesType().getSøknad().getVedtakstype() != null
+
+    private fun Behov.hasEttersendingRettighetsType(): Boolean =
+        this.getHenvendelsesType().getEttersending().getRettighetsType() != null
 }

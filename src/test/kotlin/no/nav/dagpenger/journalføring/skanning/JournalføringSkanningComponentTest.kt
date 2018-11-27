@@ -7,10 +7,10 @@ import no.nav.common.KafkaEnvironment
 import no.nav.common.embeddedutils.getAvailablePort
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.avro.Dokument
+import no.nav.dagpenger.events.avro.Ettersending
 import no.nav.dagpenger.events.avro.HenvendelsesType
 import no.nav.dagpenger.events.avro.Journalpost
 import no.nav.dagpenger.events.avro.Mottaker
-import no.nav.dagpenger.events.avro.Rettighetstype
 import no.nav.dagpenger.events.avro.Søknad
 import no.nav.dagpenger.streams.Topics
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
@@ -26,7 +26,6 @@ import org.junit.BeforeClass
 import org.junit.Test
 import java.time.Duration
 import java.util.Properties
-import java.util.Random
 import java.util.UUID
 import kotlin.test.assertEquals
 
@@ -58,27 +57,14 @@ class JournalføringSkanningComponentTest {
             embeddedEnvironment.tearDown()
         }
     }
-
     @Test
-    fun ` embedded kafka cluseter is up and running `() {
+    fun ` embedded kafka cluster is up and running `() {
         kotlin.test.assertEquals(embeddedEnvironment.serverPark.status, KafkaEnvironment.ServerParkStatus.Started)
     }
 
     @Test
-    fun ` skal kunne legge på rettighetstype `() {
+    fun ` skal kunne legge på rettighetstype og vedtakstype for Søknad `() {
 
-        val mappingBehov = mapOf(
-            Random().nextLong().toString() to true,
-            Random().nextLong().toString() to false,
-            Random().nextLong().toString() to true,
-            Random().nextLong().toString() to true,
-            Random().nextLong().toString() to false,
-            Random().nextLong().toString() to true,
-            Random().nextLong().toString() to true,
-            Random().nextLong().toString() to true,
-            Random().nextLong().toString() to false,
-            Random().nextLong().toString() to true
-        )
 
         // given an environment
         val env = Environment(
@@ -97,16 +83,66 @@ class JournalføringSkanningComponentTest {
 
         skanning.start()
 
-        mappingBehov.forEach { fødselsnummer, rettighetsType ->
+        for (number in 1..10) {
             val innkommendeBehov: Behov = Behov
                 .newBuilder()
-                .setBehovId( UUID.randomUUID().toString())
-                .setMottaker(Mottaker(fødselsnummer))
+                .setBehovId(number.toString())
+                .setMottaker(Mottaker(UUID.randomUUID().toString()))
                 .setHenvendelsesType(HenvendelsesType(Søknad(), null, null))
                 .setJournalpost(
                     Journalpost
                         .newBuilder()
                         .setJournalpostId( UUID.randomUUID().toString())
+                        .setDokumentListe(listOf(Dokument.newBuilder().setDokumentId("123").setNavSkjemaId("NAV 04-01.04").build()))
+                        .build()
+                )
+                .build()
+            val record = behovProducer.send(ProducerRecord(INNGÅENDE_JOURNALPOST.name, innkommendeBehov)).get()
+            LOGGER.info { "Produced -> ${record.topic()}  to offset ${record.offset()}" }
+
+        }
+
+        val behovConsumer: KafkaConsumer<String, Behov> = behovConsumer(env)
+        val behovsListe = behovConsumer.poll(Duration.ofSeconds(5)).toList()
+
+        skanning.stop()
+
+        assertEquals(
+            10,
+            behovsListe.filter { record -> record.value().getHenvendelsesType().getSøknad().getRettighetsType() != null && record.value().getHenvendelsesType().getSøknad().getVedtakstype() != null }.size
+        )
+    }
+
+    @Test
+    fun ` skal kunne legge på rettighetstype for Ettersending `() {
+
+        // given an environment
+        val env = Environment(
+            username = username,
+            password = password,
+            bootstrapServersUrl = embeddedEnvironment.brokersURL,
+            schemaRegistryUrl = embeddedEnvironment.schemaRegistry!!.url,
+            httpPort = getAvailablePort()
+        )
+
+        val skanning = JournalføringSkanning(env)
+
+        //produce behov...
+
+        val behovProducer = behovProducer(env)
+
+        skanning.start()
+
+        for (number in 1..10) {
+            val innkommendeBehov: Behov = Behov
+                .newBuilder()
+                .setBehovId(number.toString())
+                .setMottaker(Mottaker(UUID.randomUUID().toString()))
+                .setHenvendelsesType(HenvendelsesType(null, Ettersending(), null))
+                .setJournalpost(
+                    Journalpost
+                        .newBuilder()
+                        .setJournalpostId(UUID.randomUUID().toString())
                         .setDokumentListe(listOf(Dokument.newBuilder().setDokumentId("123").setNavSkjemaId("NAV 04-01.04").build()))
                         .build()
                 )
@@ -120,8 +156,12 @@ class JournalføringSkanningComponentTest {
 
         skanning.stop()
 
-        assertEquals(13, behovsListe.size)
+        assertEquals(
+            10,
+            behovsListe.filter { record -> record.value().getHenvendelsesType().getEttersending().getRettighetsType() != null }.size
+        )
     }
+
 
     private fun behovProducer(env: Environment): KafkaProducer<String, Behov> {
         val producer: KafkaProducer<String, Behov> = KafkaProducer(Properties().apply {
