@@ -1,8 +1,6 @@
 package no.nav.dagpenger.journalføring.skanning
 
 import no.nav.dagpenger.events.avro.Rettighetstype
-import no.nav.dagpenger.events.avro.Søknad
-import java.lang.IllegalArgumentException
 
 class RettighetstypeMapper {
 
@@ -20,6 +18,6 @@ class RettighetstypeMapper {
         )
 
         fun getRettighetstype(navSkjemaId: String): Rettighetstype {
-            return typeMap.getOrElse(navSkjemaId) {throw IllegalArgumentException("$navSkjemaId kan ikke mappes")}
+            return typeMap.getOrElse(navSkjemaId) { throw IllegalArgumentException("$navSkjemaId kan ikke mappes") }
         } }
 }

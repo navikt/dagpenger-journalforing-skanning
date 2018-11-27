@@ -1,10 +1,6 @@
 package no.nav.dagpenger.journalføring.skanning
 
-import no.nav.dagpenger.events.avro.Annet
-import no.nav.dagpenger.events.avro.Ettersending
-import no.nav.dagpenger.events.avro.Søknad
 import no.nav.dagpenger.events.avro.Vedtakstype
-import java.lang.IllegalArgumentException
 
 class VedtakstypeMapper {
 
@@ -18,7 +14,8 @@ class VedtakstypeMapper {
         )
 
         fun getVedtakstype(navSkjemaId: String): Vedtakstype {
-            return typeMap.getOrElse(navSkjemaId) {throw IllegalArgumentException("$navSkjemaId kan ikke mappes")
+            return typeMap.getOrElse(navSkjemaId) {
+                throw IllegalArgumentException("$navSkjemaId kan ikke mappes")
         } }
     }
 }

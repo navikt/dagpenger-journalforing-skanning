@@ -40,15 +40,16 @@ class JournalføringSkanning(val env: Environment) :
         val inngåendeJournalposter = builder.consumeTopic(INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl)
 
         val søknaderOgEttersendingStreams = inngåendeJournalposter
-            .peek { key, value -> LOGGER.info("Processing ${value.javaClass} with key $key") }
             .kbranch({ _, behov -> behov.isSoknad() }, { _, behov -> behov.isEttersending() })
 
         val søknadsStream = søknaderOgEttersendingStreams[0]
             .filterNot { _, behov -> behov.hasSøknadRettighetsType() && behov.hasSøknadVedtakType() }
+            .peek { key, _ -> LOGGER.info("Processing behov with HenvendelsesType Søknad with key $key") }
             .mapValues(this::setVedtakstypeOgRettighetsTypeSøknad)
 
         val ettersendingStream = søknaderOgEttersendingStreams[1]
             .filterNot { _, behov -> behov.hasEttersendingRettighetsType() }
+            .peek { key, _ -> LOGGER.info("Processing behov with HenvendelsesType Ettersending with key $key") }
             .mapValues(this::setRettighetstypeEttersending)
 
         søknadsStream
@@ -71,7 +72,6 @@ class JournalføringSkanning(val env: Environment) :
 
     private fun setVedtakstypeOgRettighetsTypeSøknad(behov: Behov): Behov {
         val journalpost = behov.getJournalpost()
-
         //Handle multiple dokuments
         val navSkjemaId: String? = journalpost.getDokumentListe().first().getNavSkjemaId()
 
@@ -81,13 +81,11 @@ class JournalføringSkanning(val env: Environment) :
             behov.getHenvendelsesType().getSøknad().setRettighetsType(rettighetstype)
             behov.getHenvendelsesType().getSøknad().setVedtakstype(vedtakstype)
         }
-
         return behov
     }
 
     private fun setRettighetstypeEttersending(behov: Behov): Behov {
         val journalpost = behov.getJournalpost()
-
         //Handle multiple dokuments
         val navSkjemaId: String? = journalpost.getDokumentListe().first().getNavSkjemaId()
 
@@ -95,7 +93,6 @@ class JournalføringSkanning(val env: Environment) :
             val rettighetstype = RettighetstypeMapper.mapper.getRettighetstype(navSkjemaId)
             behov.getHenvendelsesType().getEttersending().setRettighetsType(rettighetstype)
         }
-
         return behov
     }
 
