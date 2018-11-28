@@ -12,7 +12,6 @@ import no.nav.dagpenger.streams.consumeTopic
 import no.nav.dagpenger.streams.kbranch
 import no.nav.dagpenger.streams.streamConfig
 import no.nav.dagpenger.streams.toTopic
-import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.StreamsBuilder
 import java.util.Properties
@@ -64,13 +63,11 @@ class JournalføringSkanning(val env: Environment) :
     }
 
     override fun getConfig(): Properties {
-        val props = streamConfig(
+        return streamConfig(
             appId = SERVICE_APP_ID,
             bootStapServerUrl = env.bootstrapServersUrl,
             credential = KafkaCredential(env.username, env.password)
         )
-        props[ConsumerConfig.AUTO_OFFSET_RESET_CONFIG] = "latest"
-        return props
     }
 
     private fun setVedtakstypeOgRettighetsTypeSøknad(behov: Behov): Behov {
