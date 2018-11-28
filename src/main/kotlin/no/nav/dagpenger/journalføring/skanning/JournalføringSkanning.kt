@@ -2,6 +2,7 @@ package no.nav.dagpenger.journalføring.skanning
 
 import mu.KotlinLogging
 import no.nav.dagpenger.events.avro.Behov
+import no.nav.dagpenger.events.avro.Dokument
 import no.nav.dagpenger.events.isEttersending
 import no.nav.dagpenger.events.isSoknad
 import no.nav.dagpenger.streams.KafkaCredential
@@ -96,6 +97,11 @@ class JournalføringSkanning(val env: Environment) :
             behov.getHenvendelsesType().getEttersending().setRettighetsType(rettighetstype)
         }
         return behov
+    }
+
+    private fun containsJsonDokument(key: String, behov: Behov): Boolean {
+        val isJson: (Dokument) -> Boolean = { false }
+        return behov.getJournalpost().getDokumentListe().any(isJson)
     }
 
     private fun Behov.hasSøknadRettighetsType(): Boolean =
