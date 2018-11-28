@@ -5,6 +5,7 @@ import mu.KotlinLogging
 import no.nav.common.JAASCredential
 import no.nav.common.KafkaEnvironment
 import no.nav.common.embeddedutils.getAvailablePort
+import no.nav.dagpenger.events.avro.Annet
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.avro.Dokument
 import no.nav.dagpenger.events.avro.Ettersending
@@ -12,6 +13,7 @@ import no.nav.dagpenger.events.avro.HenvendelsesType
 import no.nav.dagpenger.events.avro.Journalpost
 import no.nav.dagpenger.events.avro.Mottaker
 import no.nav.dagpenger.events.avro.Søknad
+import no.nav.dagpenger.events.isAnnet
 import no.nav.dagpenger.events.isEttersending
 import no.nav.dagpenger.events.isSoknad
 import no.nav.dagpenger.streams.Topics
@@ -33,8 +35,6 @@ import kotlin.random.Random
 import kotlin.test.assertEquals
 
 class JournalføringSkanningComponentTest {
-
-    private val LOGGER = KotlinLogging.logger {}
 
     companion object {
         private const val username = "srvkafkaclient"
@@ -124,9 +124,8 @@ class JournalføringSkanningComponentTest {
                         .build()
                 )
                 .build()
-            val record =
-                behovProducer.send(ProducerRecord(INNGÅENDE_JOURNALPOST.name, behovId, innkommendeBehov))
-                    .get()
+            behovProducer.send(ProducerRecord(INNGÅENDE_JOURNALPOST.name, behovId, innkommendeBehov))
+                .get()
         }
 
         val behovConsumer: KafkaConsumer<String, Behov> = behovConsumer(env, "test-dagpenger-skanning-consumer-1")
@@ -160,15 +159,13 @@ class JournalføringSkanningComponentTest {
                         .build()
                 )
                 .build()
-            val record =
-                behovProducer.send(ProducerRecord(INNGÅENDE_JOURNALPOST.name, behovId, innkommendeBehov))
-                    .get()
+
+            behovProducer.send(ProducerRecord(INNGÅENDE_JOURNALPOST.name, behovId, innkommendeBehov))
+                .get()
         }
 
         val behovConsumer: KafkaConsumer<String, Behov> = behovConsumer(env, "test-dagpenger-skanning-consumer-2")
         val behovsListe = behovConsumer.poll(Duration.ofSeconds(20)).toList()
-
-        println(behovsListe.filter { behov -> behov.value().isEttersending() }.size)
 
         assertEquals(
             11,
@@ -176,6 +173,41 @@ class JournalføringSkanningComponentTest {
                 .filter { behov -> behovIds.contains(behov.value().getBehovId()) }
                 .filter { behov -> behov.value().isEttersending() }
                 .filter { behov -> behov.value().getHenvendelsesType().getEttersending().getRettighetsType() != null }.size
+        )
+    }
+
+    @Test
+    fun ` skal ikke prossesere Annet `() {
+
+        val behovIds = IntRange(22, 32).asSequence().map { it.toString() }.toSet()
+
+        behovIds.forEach { behovId ->
+            val innkommendeBehov: Behov = Behov
+                .newBuilder()
+                .setBehovId(behovId)
+                .setMottaker(Mottaker(UUID.randomUUID().toString()))
+                .setHenvendelsesType(HenvendelsesType(null, null, Annet()))
+                .setJournalpost(
+                    Journalpost
+                        .newBuilder()
+                        .setJournalpostId(UUID.randomUUID().toString())
+                        .setDokumentListe(listOf(Dokument.newBuilder().setDokumentId("123").setNavSkjemaId("NAV 04-01.04").build()))
+                        .build()
+                )
+                .build()
+
+            behovProducer.send(ProducerRecord(INNGÅENDE_JOURNALPOST.name, behovId, innkommendeBehov))
+                .get()
+        }
+
+        val behovConsumer: KafkaConsumer<String, Behov> = behovConsumer(env, "test-dagpenger-skanning-consumer-3")
+        val behovsListe = behovConsumer.poll(Duration.ofSeconds(20)).toList()
+
+        assertEquals(
+            11,
+            behovsListe
+                .filter { behov -> behovIds.contains(behov.value().getBehovId()) }
+                .filter { behov -> behov.value().isAnnet() }.size
         )
     }
 
