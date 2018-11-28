@@ -31,8 +31,10 @@ import java.time.Duration
 import java.util.Properties
 import java.util.UUID
 import kotlin.random.Random
+import kotlin.test.Ignore
 import kotlin.test.assertEquals
 
+@Ignore
 class JournalføringSkanningComponentTest {
 
     companion object {
