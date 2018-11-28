@@ -92,7 +92,7 @@ pitest {
     avoidCallsTo = setOf("kotlin.jvm.internal")
 }
 
-tasks.getByName("check").dependsOn("pitest")
+tasks.getByName("pitest").mustRunAfter("check")
 
 tasks.withType<Test> {
     testLogging {
