@@ -40,6 +40,7 @@ class JournalføringSkanning(val env: Environment) :
         val inngåendeJournalposter = builder.consumeTopic(INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl)
 
         val søknaderOgEttersendingStreams = inngåendeJournalposter
+            .peek { key, value -> LOGGER.info("Processing ${value.javaClass} with key $key") }
             .kbranch({ _, behov -> behov.isSoknad() }, { _, behov -> behov.isEttersending() })
 
         val søknadsStream = søknaderOgEttersendingStreams[0]
