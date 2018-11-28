@@ -1,7 +1,6 @@
 package no.nav.dagpenger.journalføring.skanning
 
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig
-import mu.KotlinLogging
 import no.nav.common.JAASCredential
 import no.nav.common.KafkaEnvironment
 import no.nav.common.embeddedutils.getAvailablePort
