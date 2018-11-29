@@ -74,7 +74,7 @@ class JournalføringSkanning(val env: Environment) :
     private fun setVedtakstypeOgRettighetsTypeSøknad(behov: Behov): Behov {
         val journalpost = behov.getJournalpost()
         //Handle multiple dokuments
-        val navSkjemaId: String? = journalpost.getDokumentListe().first().getNavSkjemaId()
+        val navSkjemaId: String? = journalpost.getDokumentListe().firstOrNull()?.getNavSkjemaId()
 
         if (navSkjemaId != null) {
             val vedtakstype = VedtakstypeMapper.mapper.getVedtakstype(navSkjemaId)
@@ -82,13 +82,14 @@ class JournalføringSkanning(val env: Environment) :
             behov.getHenvendelsesType().getSøknad().setRettighetsType(rettighetstype)
             behov.getHenvendelsesType().getSøknad().setVedtakstype(vedtakstype)
         }
+
         return behov
     }
 
     private fun setRettighetstypeEttersending(behov: Behov): Behov {
         val journalpost = behov.getJournalpost()
         //Handle multiple dokuments
-        val navSkjemaId: String? = journalpost.getDokumentListe().first().getNavSkjemaId()
+        val navSkjemaId: String? = journalpost.getDokumentListe().firstOrNull()?.getNavSkjemaId()
 
         if (navSkjemaId != null) {
             val rettighetstype = RettighetstypeMapper.mapper.getRettighetstype(navSkjemaId)
