@@ -5,6 +5,7 @@ import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.avro.Dokument
 import no.nav.dagpenger.events.isEttersending
 import no.nav.dagpenger.events.isSoknad
+import no.nav.dagpenger.metrics.aCounter
 import no.nav.dagpenger.streams.KafkaCredential
 import no.nav.dagpenger.streams.Service
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
@@ -24,6 +25,12 @@ class JournalføringSkanning(val env: Environment) :
         "journalføring-skanning" // NB: also used as group.id for the consumer group - do not change!
 
     override val HTTP_PORT: Int = env.httpPort ?: super.HTTP_PORT
+
+    private val jpCounter = aCounter(
+        name = "journalpost_vedtak_rettighet",
+        labelNames = listOf("recognizedSkjemaId", "vedtaksType", "rettighetsType"),
+        help = "Number of Journalposts processed by journalƒøring-skanning"
+    )
 
     companion object {
         @JvmStatic
@@ -81,6 +88,10 @@ class JournalføringSkanning(val env: Environment) :
             val rettighetstype = RettighetstypeMapper.mapper.getRettighetstype(navSkjemaId)
             behov.getHenvendelsesType().getSøknad().setRettighetsType(rettighetstype)
             behov.getHenvendelsesType().getSøknad().setVedtakstype(vedtakstype)
+
+            jpCounter.labels("true", vedtakstype.toString(), rettighetstype.toString()).inc()
+        } else {
+            jpCounter.labels("false", "N/A", "N/A").inc()
         }
 
         return behov
@@ -94,6 +105,10 @@ class JournalføringSkanning(val env: Environment) :
         if (navSkjemaId != null) {
             val rettighetstype = RettighetstypeMapper.mapper.getRettighetstype(navSkjemaId)
             behov.getHenvendelsesType().getEttersending().setRettighetsType(rettighetstype)
+
+            jpCounter.labels("true", "N/A", rettighetstype.toString()).inc()
+        } else {
+            jpCounter.labels("false", "N/A", "N/A").inc()
         }
         return behov
     }
