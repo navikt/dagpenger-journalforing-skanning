@@ -28,7 +28,7 @@ class JournalføringSkanning(val env: Environment) :
 
     private val jpCounter = aCounter(
         name = "journalpost_vedtak_rettighet",
-        labelNames = listOf("recognizedSkjemaId", "vedtaksType", "rettighetsType"),
+        labelNames = listOf("vedtaksType", "rettighetsType", "containsJsonDocument"),
         help = "Number of Journalposts processed by journalƒøring-skanning"
     )
 
@@ -63,6 +63,7 @@ class JournalføringSkanning(val env: Environment) :
         søknadsStream
             .merge(ettersendingStream)
             .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
+            .peek(this::registerMetrics)
             .toTopic(
                 INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl
             )
@@ -88,10 +89,6 @@ class JournalføringSkanning(val env: Environment) :
             val rettighetstype = RettighetstypeMapper.mapper.getRettighetstype(navSkjemaId)
             behov.getHenvendelsesType().getSøknad().setRettighetsType(rettighetstype)
             behov.getHenvendelsesType().getSøknad().setVedtakstype(vedtakstype)
-
-            jpCounter.labels("true", vedtakstype.toString(), rettighetstype.toString()).inc()
-        } else {
-            jpCounter.labels("false", "N/A", "N/A").inc()
         }
 
         return behov
@@ -105,15 +102,26 @@ class JournalføringSkanning(val env: Environment) :
         if (navSkjemaId != null) {
             val rettighetstype = RettighetstypeMapper.mapper.getRettighetstype(navSkjemaId)
             behov.getHenvendelsesType().getEttersending().setRettighetsType(rettighetstype)
-
-            jpCounter.labels("true", "N/A", rettighetstype.toString()).inc()
-        } else {
-            jpCounter.labels("false", "N/A", "N/A").inc()
         }
         return behov
     }
 
-    private fun containsJsonDokument(key: String, behov: Behov): Boolean {
+    private fun registerMetrics(_: String, behov: Behov) {
+        val rettighetstype = when {
+            behov.hasSøknadRettighetsType() -> behov.getHenvendelsesType().getSøknad().getRettighetsType().toString()
+            behov.hasEttersendingRettighetsType() -> behov.getHenvendelsesType().getEttersending().getRettighetsType().toString()
+            else -> "N/A"
+        }
+
+        val vedtakstype =
+            if (behov.hasSøknadVedtakType())
+                behov.getHenvendelsesType().getSøknad().getVedtakstype().toString()
+            else "N/A"
+
+        jpCounter.labels(vedtakstype, rettighetstype, containsJsonDokument(behov).toString()).inc()
+    }
+
+    private fun containsJsonDokument(behov: Behov): Boolean {
         val isJson: (Dokument) -> Boolean = { false }
         return behov.getJournalpost().getDokumentListe().any(isJson)
     }
