@@ -18,7 +18,6 @@ apply {
 repositories {
     jcenter()
     mavenCentral()
-    mavenLocal()
     maven("https://oss.sonatype.org/content/repositories/snapshots/")
     maven("http://packages.confluent.io/maven/")
     maven("https://dl.bintray.com/kotlin/ktor")
@@ -52,12 +51,13 @@ val kafkaVersion = "2.0.0"
 val confluentVersion = "4.1.2"
 val ktorVersion = "1.0.0"
 val prometheusVersion = "0.5.0"
+val log4j2Version = "2.11.1"
 
 dependencies {
     implementation(kotlin("stdlib"))
     implementation("no.nav.dagpenger:streams:0.2.2-SNAPSHOT")
-    implementation("no.nav.dagpenger:events:0.1.6-SNAPSHOT")
-    implementation("no.nav.dagpenger:dagpenger-metrics:0.1.0-SNAPSHOT")
+    implementation("no.nav.dagpenger:dagpenger-metrics:0.1.1-SNAPSHOT")
+    implementation("no.nav.dagpenger:events:0.1.9-SNAPSHOT")
 
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
     implementation("com.github.kittinunf.fuel:fuel:$fuelVersion")
@@ -66,7 +66,12 @@ dependencies {
     compile("org.apache.kafka:kafka-streams:$kafkaVersion")
     compile("io.confluent:kafka-streams-avro-serde:$confluentVersion")
 
-    compile("io.ktor:ktor-server-netty:$ktorVersion")
+    implementation("io.ktor:ktor-server-netty:$ktorVersion")
+
+    implementation("org.apache.logging.log4j:log4j-api:$log4j2Version")
+    implementation("org.apache.logging.log4j:log4j-core:$log4j2Version")
+    implementation("org.apache.logging.log4j:log4j-slf4j-impl:$log4j2Version")
+    implementation("com.vlkan.log4j2:log4j2-logstash-layout-fatjar:0.15")
 
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit"))

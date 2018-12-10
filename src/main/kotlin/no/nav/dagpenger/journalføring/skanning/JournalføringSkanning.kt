@@ -106,7 +106,7 @@ class JournalføringSkanning(val env: Environment) :
         return behov
     }
 
-    private fun registerMetrics(_: String, behov: Behov) {
+    private fun registerMetrics(key: String, behov: Behov) {
         val rettighetstype = when {
             behov.hasSøknadRettighetsType() -> behov.getHenvendelsesType().getSøknad().getRettighetsType().toString()
             behov.hasEttersendingRettighetsType() -> behov.getHenvendelsesType().getEttersending().getRettighetsType().toString()
