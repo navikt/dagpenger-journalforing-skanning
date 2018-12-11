@@ -81,7 +81,7 @@ class JournalføringSkanning(val env: Environment) :
 
     private fun setVedtakstypeOgRettighetsTypeSøknad(behov: Behov): Behov {
         val journalpost = behov.getJournalpost()
-        //Handle multiple dokuments
+        // Handle multiple dokuments
         val navSkjemaId: String? = journalpost.getDokumentListe().firstOrNull()?.getNavSkjemaId()
 
         if (navSkjemaId != null) {
@@ -96,7 +96,7 @@ class JournalføringSkanning(val env: Environment) :
 
     private fun setRettighetstypeEttersending(behov: Behov): Behov {
         val journalpost = behov.getJournalpost()
-        //Handle multiple dokuments
+        // Handle multiple dokuments
         val navSkjemaId: String? = journalpost.getDokumentListe().firstOrNull()?.getNavSkjemaId()
 
         if (navSkjemaId != null) {
