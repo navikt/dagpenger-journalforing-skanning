@@ -62,7 +62,7 @@ class JournalføringSkanning(val env: Environment) :
 
         søknadsStream
             .merge(ettersendingStream)
-            .peek { _, value -> registerMetrics(value)}
+            .peek { _, value -> registerMetrics(value) }
             .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
             .toTopic(
                 INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl
