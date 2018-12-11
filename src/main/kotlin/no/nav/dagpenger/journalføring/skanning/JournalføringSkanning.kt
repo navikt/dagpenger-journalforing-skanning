@@ -110,13 +110,13 @@ class JournalføringSkanning(val env: Environment) :
         val rettighetstype = when {
             behov.hasSøknadRettighetsType() -> behov.getHenvendelsesType().getSøknad().getRettighetsType().toString()
             behov.hasEttersendingRettighetsType() -> behov.getHenvendelsesType().getEttersending().getRettighetsType().toString()
-            else -> "N/A"
+            else -> "unknown"
         }
 
         val vedtakstype =
             if (behov.hasSøknadVedtakType())
                 behov.getHenvendelsesType().getSøknad().getVedtakstype().toString()
-            else "N/A"
+            else "unknown"
 
         jpCounter.labels(vedtakstype, rettighetstype, containsJsonDokument(behov).toString()).inc()
     }
