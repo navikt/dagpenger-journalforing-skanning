@@ -62,8 +62,8 @@ class JournalføringSkanning(val env: Environment) :
 
         søknadsStream
             .merge(ettersendingStream)
+            .peek { _, value -> registerMetrics(value)}
             .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
-            .peek(this::registerMetrics)
             .toTopic(
                 INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl
             )
@@ -106,7 +106,7 @@ class JournalføringSkanning(val env: Environment) :
         return behov
     }
 
-    private fun registerMetrics(key: String, behov: Behov) {
+    private fun registerMetrics(behov: Behov) {
         val rettighetstype = when {
             behov.hasSøknadRettighetsType() -> behov.getHenvendelsesType().getSøknad().getRettighetsType().toString()
             behov.hasEttersendingRettighetsType() -> behov.getHenvendelsesType().getEttersending().getRettighetsType().toString()
@@ -127,11 +127,11 @@ class JournalføringSkanning(val env: Environment) :
     }
 
     private fun Behov.hasSøknadRettighetsType(): Boolean =
-        this.getHenvendelsesType().getSøknad().getVedtakstype() != null
+        this.getHenvendelsesType()?.getSøknad()?.getVedtakstype() != null
 
     private fun Behov.hasSøknadVedtakType(): Boolean =
-        this.getHenvendelsesType().getSøknad().getVedtakstype() != null
+        this.getHenvendelsesType()?.getSøknad()?.getVedtakstype() != null
 
     private fun Behov.hasEttersendingRettighetsType(): Boolean =
-        this.getHenvendelsesType().getEttersending().getRettighetsType() != null
+        this.getHenvendelsesType()?.getEttersending()?.getRettighetsType() != null
 }
