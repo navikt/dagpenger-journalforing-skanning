@@ -44,13 +44,11 @@ val log4j2Version = "2.11.1"
 dependencies {
     implementation(kotlin("stdlib"))
     implementation("no.nav.dagpenger:streams:0.2.2-SNAPSHOT")
+    implementation("no.nav.dagpenger:dagpenger-metrics:0.1.1-SNAPSHOT")
     implementation("no.nav.dagpenger:events:0.1.9-SNAPSHOT")
 
     implementation("io.github.microutils:kotlin-logging:$kotlinLoggingVersion")
     implementation("com.github.kittinunf.fuel:fuel:$fuelVersion")
-
-    implementation("io.prometheus:simpleclient_common:$prometheusVersion")
-    implementation("io.prometheus:simpleclient_hotspot:$prometheusVersion")
 
     compile("org.apache.kafka:kafka-clients:$kafkaVersion")
     compile("org.apache.kafka:kafka-streams:$kafkaVersion")

@@ -5,6 +5,7 @@ import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.avro.Dokument
 import no.nav.dagpenger.events.isEttersending
 import no.nav.dagpenger.events.isSoknad
+import no.nav.dagpenger.metrics.aCounter
 import no.nav.dagpenger.streams.KafkaCredential
 import no.nav.dagpenger.streams.Service
 import no.nav.dagpenger.streams.Topics.INNGÅENDE_JOURNALPOST
@@ -24,6 +25,12 @@ class JournalføringSkanning(val env: Environment) :
         "journalføring-skanning" // NB: also used as group.id for the consumer group - do not change!
 
     override val HTTP_PORT: Int = env.httpPort ?: super.HTTP_PORT
+
+    private val jpCounter = aCounter(
+        name = "journalpost_vedtak_rettighet",
+        labelNames = listOf("vedtaksType", "rettighetsType", "containsJsonDocument"),
+        help = "Number of Journalposts processed by journalƒøring-skanning"
+    )
 
     companion object {
         @JvmStatic
@@ -55,6 +62,7 @@ class JournalføringSkanning(val env: Environment) :
 
         søknadsStream
             .merge(ettersendingStream)
+            .peek { _, value -> registerMetrics(value) }
             .peek { key, value -> LOGGER.info("Producing ${value.javaClass} with key $key") }
             .toTopic(
                 INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl
@@ -73,8 +81,8 @@ class JournalføringSkanning(val env: Environment) :
 
     private fun setVedtakstypeOgRettighetsTypeSøknad(behov: Behov): Behov {
         val journalpost = behov.getJournalpost()
-        //Handle multiple dokuments
-        val navSkjemaId: String? = journalpost.getDokumentListe().first().getNavSkjemaId()
+        // Handle multiple dokuments
+        val navSkjemaId: String? = journalpost.getDokumentListe().firstOrNull()?.getNavSkjemaId()
 
         if (navSkjemaId != null) {
             val vedtakstype = VedtakstypeMapper.mapper.getVedtakstype(navSkjemaId)
@@ -82,13 +90,14 @@ class JournalføringSkanning(val env: Environment) :
             behov.getHenvendelsesType().getSøknad().setRettighetsType(rettighetstype)
             behov.getHenvendelsesType().getSøknad().setVedtakstype(vedtakstype)
         }
+
         return behov
     }
 
     private fun setRettighetstypeEttersending(behov: Behov): Behov {
         val journalpost = behov.getJournalpost()
-        //Handle multiple dokuments
-        val navSkjemaId: String? = journalpost.getDokumentListe().first().getNavSkjemaId()
+        // Handle multiple dokuments
+        val navSkjemaId: String? = journalpost.getDokumentListe().firstOrNull()?.getNavSkjemaId()
 
         if (navSkjemaId != null) {
             val rettighetstype = RettighetstypeMapper.mapper.getRettighetstype(navSkjemaId)
@@ -97,17 +106,32 @@ class JournalføringSkanning(val env: Environment) :
         return behov
     }
 
-    private fun containsJsonDokument(key: String, behov: Behov): Boolean {
+    private fun registerMetrics(behov: Behov) {
+        val rettighetstype = when {
+            behov.hasSøknadRettighetsType() -> behov.getHenvendelsesType().getSøknad().getRettighetsType().toString()
+            behov.hasEttersendingRettighetsType() -> behov.getHenvendelsesType().getEttersending().getRettighetsType().toString()
+            else -> "unknown"
+        }
+
+        val vedtakstype =
+            if (behov.hasSøknadVedtakType())
+                behov.getHenvendelsesType().getSøknad().getVedtakstype().toString()
+            else "unknown"
+
+        jpCounter.labels(vedtakstype, rettighetstype, containsJsonDokument(behov).toString()).inc()
+    }
+
+    private fun containsJsonDokument(behov: Behov): Boolean {
         val isJson: (Dokument) -> Boolean = { false }
         return behov.getJournalpost().getDokumentListe().any(isJson)
     }
 
     private fun Behov.hasSøknadRettighetsType(): Boolean =
-        this.getHenvendelsesType().getSøknad().getVedtakstype() != null
+        this.getHenvendelsesType()?.getSøknad()?.getVedtakstype() != null
 
     private fun Behov.hasSøknadVedtakType(): Boolean =
-        this.getHenvendelsesType().getSøknad().getVedtakstype() != null
+        this.getHenvendelsesType()?.getSøknad()?.getVedtakstype() != null
 
     private fun Behov.hasEttersendingRettighetsType(): Boolean =
-        this.getHenvendelsesType().getEttersending().getRettighetsType() != null
+        this.getHenvendelsesType()?.getEttersending()?.getRettighetsType() != null
 }
