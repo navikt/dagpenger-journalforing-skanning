@@ -10,6 +10,13 @@ Gradle brukes som byggverktøy og er bundlet inn.
 
 `./gradlew build`
 
+
+# Kjøre lokalt med mocking
+
+Environment variables:   
+SRVDAGPENGER_JOURNALFORING_SKANNING_USERNAME=igroup  
+SRVDAGPENGER_JOURNALFORING_SKANNING_PASSWORD=itest 
+
 ---
 
 # Henvendelser
