@@ -6,6 +6,7 @@ plugins {
     kotlin("jvm") version "1.3.10"
     id("com.diffplug.gradle.spotless") version "3.13.0"
     id("info.solidsoft.pitest") version "1.3.0"
+    id("com.github.johnrengelman.shadow") version "4.0.3"
 }
 
 apply {
