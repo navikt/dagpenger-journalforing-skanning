@@ -130,11 +130,11 @@ class JournalføringSkanning(val env: Environment) :
     }
 
     private fun Behov.hasSøknadRettighetsType(): Boolean =
-        (this.getHenvendelsesType() as Søknad).getVedtakstype() != null
+        this.isSoknad() && (this.getHenvendelsesType() as Søknad).getVedtakstype() != null
 
     private fun Behov.hasSøknadVedtakType(): Boolean =
-        (this.getHenvendelsesType() as Søknad).getVedtakstype() != null
+        this.isSoknad() && (this.getHenvendelsesType() as Søknad).getVedtakstype() != null
 
     private fun Behov.hasEttersendingRettighetsType(): Boolean =
-        (this.getHenvendelsesType() as Ettersending).getRettighetsType() != null
+        this.isEttersending() && (this.getHenvendelsesType() as Ettersending).getRettighetsType() != null
 }
