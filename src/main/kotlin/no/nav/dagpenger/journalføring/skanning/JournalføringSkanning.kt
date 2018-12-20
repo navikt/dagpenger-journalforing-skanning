@@ -3,6 +3,8 @@ package no.nav.dagpenger.journalføring.skanning
 import mu.KotlinLogging
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.avro.Dokument
+import no.nav.dagpenger.events.avro.Ettersending
+import no.nav.dagpenger.events.avro.Søknad
 import no.nav.dagpenger.events.isEttersending
 import no.nav.dagpenger.events.isSoknad
 import no.nav.dagpenger.metrics.aCounter
@@ -87,8 +89,9 @@ class JournalføringSkanning(val env: Environment) :
         if (navSkjemaId != null) {
             val vedtakstype = VedtakstypeMapper.mapper.getVedtakstype(navSkjemaId)
             val rettighetstype = RettighetstypeMapper.mapper.getRettighetstype(navSkjemaId)
-            behov.getHenvendelsesType().getSøknad().setRettighetsType(rettighetstype)
-            behov.getHenvendelsesType().getSøknad().setVedtakstype(vedtakstype)
+
+            (behov.getHenvendelsesType() as Søknad).setRettighetsType(rettighetstype)
+            (behov.getHenvendelsesType() as Søknad).setVedtakstype(vedtakstype)
         }
 
         return behov
@@ -101,21 +104,21 @@ class JournalføringSkanning(val env: Environment) :
 
         if (navSkjemaId != null) {
             val rettighetstype = RettighetstypeMapper.mapper.getRettighetstype(navSkjemaId)
-            behov.getHenvendelsesType().getEttersending().setRettighetsType(rettighetstype)
+            (behov.getHenvendelsesType() as Ettersending).setRettighetsType(rettighetstype)
         }
         return behov
     }
 
     private fun registerMetrics(behov: Behov) {
         val rettighetstype = when {
-            behov.hasSøknadRettighetsType() -> behov.getHenvendelsesType().getSøknad().getRettighetsType().toString()
-            behov.hasEttersendingRettighetsType() -> behov.getHenvendelsesType().getEttersending().getRettighetsType().toString()
+            behov.hasSøknadRettighetsType() -> (behov.getHenvendelsesType() as Søknad).getRettighetsType().toString()
+            behov.hasEttersendingRettighetsType() -> (behov.getHenvendelsesType() as Ettersending).getRettighetsType().toString()
             else -> "unknown"
         }
 
         val vedtakstype =
             if (behov.hasSøknadVedtakType())
-                behov.getHenvendelsesType().getSøknad().getVedtakstype().toString()
+                (behov.getHenvendelsesType() as Søknad).getVedtakstype().toString()
             else "unknown"
 
         jpCounter.labels(vedtakstype, rettighetstype, containsJsonDokument(behov).toString()).inc()
@@ -127,11 +130,11 @@ class JournalføringSkanning(val env: Environment) :
     }
 
     private fun Behov.hasSøknadRettighetsType(): Boolean =
-        this.getHenvendelsesType()?.getSøknad()?.getVedtakstype() != null
+        (this.getHenvendelsesType() as Søknad).getVedtakstype() != null
 
     private fun Behov.hasSøknadVedtakType(): Boolean =
-        this.getHenvendelsesType()?.getSøknad()?.getVedtakstype() != null
+        (this.getHenvendelsesType() as Søknad).getVedtakstype() != null
 
     private fun Behov.hasEttersendingRettighetsType(): Boolean =
-        this.getHenvendelsesType()?.getEttersending()?.getRettighetsType() != null
+        (this.getHenvendelsesType() as Ettersending).getRettighetsType() != null
 }

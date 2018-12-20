@@ -8,7 +8,6 @@ import no.nav.dagpenger.events.avro.Annet
 import no.nav.dagpenger.events.avro.Behov
 import no.nav.dagpenger.events.avro.Dokument
 import no.nav.dagpenger.events.avro.Ettersending
-import no.nav.dagpenger.events.avro.HenvendelsesType
 import no.nav.dagpenger.events.avro.Journalpost
 import no.nav.dagpenger.events.avro.Mottaker
 import no.nav.dagpenger.events.avro.Søknad
@@ -114,7 +113,7 @@ class JournalføringSkanningComponentTest {
                 .newBuilder()
                 .setBehovId(behovId)
                 .setMottaker(Mottaker(UUID.randomUUID().toString()))
-                .setHenvendelsesType(HenvendelsesType(Søknad(), null, null))
+                .setHenvendelsesType(Søknad())
                 .setJournalpost(
                     Journalpost
                         .newBuilder()
@@ -135,7 +134,7 @@ class JournalføringSkanningComponentTest {
             behovsListe
                 .filter { behov -> behovIds.contains(behov.value().getBehovId()) }
                 .filter { behov -> behov.value().isSoknad() }
-                .filter { behov -> behov.value().getHenvendelsesType().getSøknad().getRettighetsType() != null && behov.value().getHenvendelsesType().getSøknad().getVedtakstype() != null }.size
+                .filter { behov -> (behov.value().getHenvendelsesType() as Søknad).getRettighetsType() != null && (behov.value().getHenvendelsesType() as Søknad).getVedtakstype() != null }.size
         )
     }
 
@@ -149,7 +148,7 @@ class JournalføringSkanningComponentTest {
                 .newBuilder()
                 .setBehovId(behovId)
                 .setMottaker(Mottaker(UUID.randomUUID().toString()))
-                .setHenvendelsesType(HenvendelsesType(null, Ettersending(), null))
+                .setHenvendelsesType(Ettersending())
                 .setJournalpost(
                     Journalpost
                         .newBuilder()
@@ -171,7 +170,7 @@ class JournalføringSkanningComponentTest {
             behovsListe
                 .filter { behov -> behovIds.contains(behov.value().getBehovId()) }
                 .filter { behov -> behov.value().isEttersending() }
-                .filter { behov -> behov.value().getHenvendelsesType().getEttersending().getRettighetsType() != null }.size
+                .filter { behov -> (behov.value().getHenvendelsesType() as Ettersending).getRettighetsType() != null }.size
         )
     }
 
@@ -185,7 +184,7 @@ class JournalføringSkanningComponentTest {
                 .newBuilder()
                 .setBehovId(behovId)
                 .setMottaker(Mottaker(UUID.randomUUID().toString()))
-                .setHenvendelsesType(HenvendelsesType(null, null, Annet()))
+                .setHenvendelsesType(Annet())
                 .setJournalpost(
                     Journalpost
                         .newBuilder()
