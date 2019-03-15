@@ -15,14 +15,13 @@ import no.nav.dagpenger.streams.consumeTopic
 import no.nav.dagpenger.streams.kbranch
 import no.nav.dagpenger.streams.streamConfig
 import no.nav.dagpenger.streams.toTopic
-import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.StreamsBuilder
+import org.apache.kafka.streams.Topology
 import java.util.Properties
 
 private val LOGGER = KotlinLogging.logger {}
 
-class JournalføringSkanning(val env: Environment) :
-    Service() {
+class JournalføringSkanning(val env: Environment) : Service() {
     override val SERVICE_APP_ID =
         "journalføring-skanning" // NB: also used as group.id for the consumer group - do not change!
 
@@ -42,9 +41,7 @@ class JournalføringSkanning(val env: Environment) :
         }
     }
 
-    override fun setupStreams(): KafkaStreams {
-        LOGGER.info { "Initiating start of $SERVICE_APP_ID" }
-
+    override fun buildTopology(): Topology {
         val builder = StreamsBuilder()
         val inngåendeJournalposter = builder.consumeTopic(INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl)
 
@@ -69,8 +66,7 @@ class JournalføringSkanning(val env: Environment) :
             .toTopic(
                 INNGÅENDE_JOURNALPOST, env.schemaRegistryUrl
             )
-
-        return KafkaStreams(builder.build(), this.getConfig())
+        return builder.build()
     }
 
     override fun getConfig(): Properties {
