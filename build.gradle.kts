@@ -36,7 +36,7 @@ java {
 }
 
 val kotlinLoggingVersion = "1.6.22"
-val fuelVersion = "1.15.0"
+val fuelVersion = "2.1.0"
 val kafkaVersion = "2.0.1"
 val confluentVersion = "5.0.2"
 val ktorVersion = "1.0.0"
@@ -45,7 +45,7 @@ val log4j2Version = "2.11.1"
 
 dependencies {
     implementation(kotlin("stdlib"))
-    implementation("com.github.navikt:dagpenger-streams:2019.05.20-12.02.83ff2b7cb7f6")
+    implementation("com.github.navikt:dagpenger-streams:2019.05.21-14.30.a7af5e9d49fe")
     implementation("no.nav.dagpenger:dagpenger-metrics:1.0-SNAPSHOT")
     implementation("com.github.navikt:dagpenger-events:2019.05.20-11.56.33cd4c73a439")
 
